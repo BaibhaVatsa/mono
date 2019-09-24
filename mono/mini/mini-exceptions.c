@@ -2556,6 +2556,12 @@ mono_handle_exception_internal (MonoContext *ctx, MonoObject *obj, gboolean resu
 			;
 	}
 
+	if (mini_debug_options.suspend_on_unhandled) {
+		mono_runtime_printf_err ("Unhandled exception, suspending...");
+		while (1)
+			;
+	}
+
 	if (mono_object_isinst_checked (obj, mono_defaults.exception_class, error)) {
 		mono_ex = (MonoException*)obj;
 	} else {
