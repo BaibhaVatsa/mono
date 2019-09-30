@@ -2190,6 +2190,10 @@ typedef enum {
  * wrapper and an exception handling callback is installed (in which case
  * return \c MONO_FIRST_PASS_CALLBACK_TO_NATIVE).
  */
+//dsafsd
+//dfasdfsafd
+//dsfadsadsgasgdfg
+//dsfasdfadfadsgfdghfgh
 static MonoFirstPassResult
 handle_exception_first_pass (MonoContext *ctx, MonoObject *obj, gint32 *out_filter_idx, MonoJitInfo **out_ji, MonoJitInfo **out_prev_ji, MonoObject *non_exception, StackFrameInfo *catch_frame)
 {
@@ -2556,12 +2560,6 @@ mono_handle_exception_internal (MonoContext *ctx, MonoObject *obj, gboolean resu
 			;
 	}
 
-	if (mini_debug_options.suspend_on_unhandled) {
-		mono_runtime_printf_err ("Unhandled exception, suspending...");
-		while (1)
-			;
-	}
-
 	if (mono_object_isinst_checked (obj, mono_defaults.exception_class, error)) {
 		mono_ex = (MonoException*)obj;
 	} else {
@@ -2611,6 +2609,7 @@ mono_handle_exception_internal (MonoContext *ctx, MonoObject *obj, gboolean resu
 	memcpy (&jit_tls->orig_ex_ctx, ctx, sizeof (MonoContext));
 
 	if (!resume) {
+		mono_runtime_printf_err ("goes inside !resume");
 		MonoContext ctx_cp = *ctx;
 		if (mono_trace_is_enabled ()) {
 			ERROR_DECL (error);
@@ -2648,35 +2647,61 @@ mono_handle_exception_internal (MonoContext *ctx, MonoObject *obj, gboolean resu
 			if (mono_ex && mono_trace_eval_exception (mono_object_class (mono_ex)))
 				mono_print_thread_dump_from_ctx (ctx);
 		}
+		mono_runtime_printf_err ("crossed trace is enabled");
 		jit_tls->orig_ex_ctx_set = TRUE;
 		MONO_PROFILER_RAISE (exception_throw, (obj));
 		jit_tls->orig_ex_ctx_set = FALSE;
-
+		mono_runtime_printf_err ("crossed mono profiler raise");
 		StackFrameInfo catch_frame;
 		MonoFirstPassResult res;
+		mono_runtime_printf_err ("reached handle exception first pass");
 		res = handle_exception_first_pass (&ctx_cp, obj, &first_filter_idx, &ji, &prev_ji, non_exception, &catch_frame);
-
+		mono_runtime_printf_err ("goes beyond handle exception first pass");
 		if (res == MONO_FIRST_PASS_UNHANDLED) {
+			mono_runtime_printf_err ("handle exception first pass looks fine");
+		} else if (res == MONO_FIRST_PASS_HANDLED) {
+			mono_runtime_printf_err ("handle exception first pass returned it was handled lmao");			
+		} else if (res == MONO_FIRST_PASS_CALLBACK_TO_NATIVE) {
+			mono_runtime_printf_err ("handle exception first pass returned it called native");			
+		} else {
+			mono_runtime_printf_err("wtf is it returning");
+		}
+		if (res == MONO_FIRST_PASS_UNHANDLED) {
+			mono_runtime_printf_err ("goes inside res == mono first pass unhandled");
+			if (mini_debug_options.suspend_on_unhandled) {
+				mono_runtime_printf_err ("Unhandled exception, suspending...");
+				while (1)
+					;
+			}
+			mono_runtime_printf_err ("the flag was not set correctly");
 			if (mono_aot_mode == MONO_AOT_MODE_LLVMONLY_INTERP) {
+				mono_runtime_printf_err ("entered the fucking aot mode is llvmonly twerk");
 				/* Reached the top interpreted frames, but there might be native frames above us */
 				throw_exception (obj, TRUE);
 				g_assert_not_reached ();
 			}
-			if (mini_debug_options.break_on_exc)
+			mono_runtime_printf_err ("exited the fucking aot mode is llvmonly twerk");
+			if (mini_debug_options.break_on_exc) {
+				mono_runtime_printf_err ("break on exec flag set");
 				G_BREAKPOINT ();
+			}
+			mono_runtime_printf_err ("reached call to some handle exception function");
 			mini_get_dbg_callbacks ()->handle_exception ((MonoException *)obj, ctx, NULL, NULL);
+			mono_runtime_printf_err ("survived call to some handle exception function");
 
 			if (mini_debug_options.suspend_on_unhandled && mono_object_class (obj) != mono_defaults.threadabortexception_class) {
 				mono_runtime_printf_err ("Unhandled exception, suspending...");
 				while (1)
 					;
 			}
+			mono_runtime_printf_err ("crossed the call and it didn't return true");
 
 			// FIXME: This runs managed code so it might cause another stack overflow when
 			// we are handling a stack overflow
 			mini_set_abort_threshold (&catch_frame);
 			mono_unhandled_exception_internal (obj);
 		} else {
+			mono_runtime_printf_err ("goes inside res != mono first pass unhandled");
 			gboolean unhandled = FALSE;
 
 			/*
@@ -2687,19 +2712,30 @@ mono_handle_exception_internal (MonoContext *ctx, MonoObject *obj, gboolean resu
 			 * these runtime invoke calls from others in the runtime.
 			 */
 			if (ji && jinfo_get_method (ji)->wrapper_type == MONO_WRAPPER_RUNTIME_INVOKE) {
-				if (prev_ji && jinfo_get_method (prev_ji) == mono_defaults.threadpool_perform_wait_callback_method)
+				mono_runtime_printf_err ("went inside the hackish method");
+				if (prev_ji && jinfo_get_method (prev_ji) == mono_defaults.threadpool_perform_wait_callback_method) {
 					unhandled = TRUE;
+					mono_runtime_printf_err ("went inside the inside the hackish method");			
+				}
 			}
+			mono_runtime_printf_err ("crossed the hackish method");			
 
-			if (unhandled)
+			if (unhandled) {
+				mono_runtime_printf_err ("unhandled = true inside the hackish method");			
 				mini_get_dbg_callbacks ()->handle_exception ((MonoException *)obj, ctx, NULL, NULL);
+			}
 			else if (!ji || (jinfo_get_method (ji)->wrapper_type == MONO_WRAPPER_RUNTIME_INVOKE)) {
+				mono_runtime_printf_err ("some other shit");			
 				mini_get_dbg_callbacks ()->handle_exception ((MonoException *)obj, ctx, NULL, NULL);
 				mini_get_dbg_callbacks ()->handle_exception ((MonoException *)obj, ctx, &ctx_cp, &catch_frame);
 			}
-			else if (res != MONO_FIRST_PASS_CALLBACK_TO_NATIVE)
+			else if (res != MONO_FIRST_PASS_CALLBACK_TO_NATIVE) {
 				mini_get_dbg_callbacks ()->handle_exception ((MonoException *)obj, ctx, &ctx_cp, &catch_frame);
+				mono_runtime_printf_err ("else bitch");						
+			}
+			mono_runtime_printf_err ("end of else");						
 		}
+		mono_runtime_printf_err ("end of the big ass !resume");
 	}
 
 	if (out_ji)
